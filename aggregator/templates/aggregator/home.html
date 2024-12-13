@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload, Crop, and Save</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cropperjs/dist/cropper.min.css">
+    <style>
+        /* General styles */
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+
+        main {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            max-width: 800px;
+            width: 90%;
+            text-align: center;
+            margin: 10px;
+        }
+
+        h2 {
+            font-size: 2rem;
+            margin-bottom: 20px;
+            color: #ffffff;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .box, .camera-container {
+            margin: 15px auto;
+            width: 100%;
+        }
+
+        input[type="file"], button {
+            display: inline-block;
+            padding: 12px 25px;
+            font-size: 1rem;
+            margin: 10px 0;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(135deg, #ff7e5f, #feb47b);
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        button:hover, input[type="file"]:hover {
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.2);
+            transform: scale(1.05);
+        }
+
+        .result img, .cropped {
+            max-width: 100%;
+            border-radius: 10px;
+            margin-top: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .camera-container {
+            margin-top: 30px;
+            border: 2px dashed rgba(255, 255, 255, 0.4);
+            padding: 20px;
+            border-radius: 15px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        video {
+            width: 100%;
+            border-radius: 10px;
+            max-height: 400px;
+        }
+
+        .btn-container {
+            margin-top: 15px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            h2 {
+                font-size: 1.5rem;
+            }
+
+            input[type="file"], button {
+                font-size: 0.9rem;
+                padding: 10px 20px;
+            }
+
+            .camera-container {
+                padding: 15px;
+            }
+
+            video {
+                max-height: 300px;
+            }
+        }
+
+        /* Smooth Scroll Fix */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Button Glow */
+        button:active {
+            transform: translateY(3px);
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <h2>Upload, Crop, and Save</h2>
+
+        <!-- File Upload -->
+        <div class="box">
+            <input type="file" id="file-input">
+        </div>
+
+        <!-- Camera Stream -->
+        <div class="camera-container">
+            <video id="camera" autoplay></video>
+            <div class="btn-container">
+                <button id="capture">Capture Image</button>
+            </div>
+        </div>
+
+        <!-- Crop Preview -->
+        <div class="box-2">
+            <div class="result"></div>
+        </div>
+
+        <!-- Cropped Result -->
+        <div class="box-2 img-result hide">
+            <img class="cropped" src="" alt="Cropped Image">
+        </div>
+
+        <!-- Save Options -->
+        <div class="box">
+            <button class="btn save hide">Save</button>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/cropperjs/dist/cropper.min.js"></script>
+    <script>
+        let result = document.querySelector('.result'),
+            img_result = document.querySelector('.img-result'),
+            save = document.querySelector('.save'),
+            cropped = document.querySelector('.cropped'),
+            upload = document.querySelector('#file-input'),
+            camera = document.querySelector('#camera'),
+            capture = document.querySelector('#capture'),
+            cropper;
+
+        // File upload
+        upload.addEventListener('change', (e) => {
+            if (e.target.files.length) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    if (e.target.result) {
+                        let img = document.createElement('img');
+                        img.id = 'image';
+                        img.src = e.target.result;
+                        result.innerHTML = '';
+                        result.appendChild(img);
+                        save.classList.remove('hide');
+                        cropper = new Cropper(img);
+                    }
+                };
+                reader.readAsDataURL(e.target.files[0]);
+            }
+        });
+
+        // Camera functionality
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then(stream => {
+                    camera.srcObject = stream;
+                })
+                .catch(err => console.error(err));
+        }
+
+        capture.addEventListener('click', () => {
+            let canvas = document.createElement('canvas');
+            canvas.width = camera.videoWidth;
+            canvas.height = camera.videoHeight;
+            canvas.getContext('2d').drawImage(camera, 0, 0);
+            let imgData = canvas.toDataURL();
+
+            let img = document.createElement('img');
+            img.id = 'image';
+            img.src = imgData;
+            result.innerHTML = '';
+            result.appendChild(img);
+
+            save.classList.remove('hide');
+            cropper = new Cropper(img);
+        });
+
+        // Save cropped image
+        save.addEventListener('click', (e) => {
+            e.preventDefault();
+            let imgSrc = cropper.getCroppedCanvas().toDataURL();
+            cropped.src = imgSrc;
+            cropped.classList.remove('hide');
+            img_result.classList.remove('hide');
+        });
+    </script>
+</body>
+</html>
